@@ -9,6 +9,9 @@ const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 // So we just pass the URL directly.
 export const sessionRedisClient = createClient({
   url: redisUrl,
+  socket: {
+    family: 4,
+  },
 });
 
 sessionRedisClient.on('error', (err) => {

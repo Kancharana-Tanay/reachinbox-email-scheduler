@@ -70,6 +70,11 @@ app.use('/api/emails', emailRoutes);
 app.use('/api/senders', senderRoutes);
 app.use('/api/slack', slackRoutes);
 
+// Health check endpoint for Render
+app.get('/', (req: Request, res: Response) => {
+  res.status(200).send('OK');
+});
+
 // Bull Board with Basic Auth
 app.use('/admin/queues', (req, res, next) => {
   const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
