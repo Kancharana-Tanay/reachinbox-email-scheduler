@@ -1,4 +1,5 @@
 FROM node:22-alpine AS base
+RUN apk add --no-cache openssl
 
 # Development Stage
 FROM base AS development
@@ -19,4 +20,4 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 EXPOSE 4000
-CMD ["npm", "start"]
+CMD ["sh", "-c", "npm run prisma:deploy && npm start"]
