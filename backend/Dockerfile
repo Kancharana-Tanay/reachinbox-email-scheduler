@@ -20,4 +20,4 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 EXPOSE 4000
-CMD ["sh", "-c", "npm run prisma:deploy && npm start"]
+CMD ["sh", "-c", "npm run prisma:deploy && npm run production"]

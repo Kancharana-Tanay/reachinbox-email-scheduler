@@ -133,3 +133,6 @@ The default delay (2000ms) is enforced per sender across all concurrent workers 
 - **Best-effort Ordering**: Since jobs are handled asynchronously by multiple workers and rescheduled when limits are hit, absolute sequential ordering of emails within a campaign is best-effort.
 - **Single DB Model**: No explicit `Tenant` abstraction, assuming a typical B2C or simple B2B model where `User` owns `Senders`.
 - **Encryption**: Sender credentials and Slack tokens are encrypted symmetrically. In a massive enterprise app, a robust KMS would be preferred.
+
+## 21. Deployment Notes (Render)
+For the free Render deployment, the Express API and BullMQ worker run in the same web-service container because Render does not offer free Background Worker instances. The scheduler itself remains fully BullMQ/Redis-based and does not use cron. In a production deployment, the API and worker would be deployed as separate scalable services.

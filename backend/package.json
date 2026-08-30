@@ -9,6 +9,7 @@
     "worker:dev": "tsx watch src/worker.ts",
     "start": "node dist/server.js",
     "worker:start": "node dist/worker.js",
+    "production": "node dist/production.js",
     "build": "tsc",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
