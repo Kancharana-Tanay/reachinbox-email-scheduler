@@ -7,7 +7,7 @@ import session from 'express-session';
 import passport from 'passport';
 import { RedisStore } from 'connect-redis';
 import { logger } from './utils/logger';
-import { redisConnection } from './redis/redisClient';
+import { sessionRedisClient } from './redis/sessionRedisClient';
 import './auth/passport'; // ensure passport config is loaded
 
 const app = express();
@@ -30,8 +30,12 @@ app.use(pinoHttp({ logger }));
 app.use(express.json({ limit: '50mb' }));
 app.use(cookieParser());
 
+sessionRedisClient.connect().catch((err) => {
+  logger.error({ err }, 'Failed to connect session Redis client');
+});
+
 const redisStore = new RedisStore({
-  client: redisConnection,
+  client: sessionRedisClient,
   prefix: 'session:',
 });
 

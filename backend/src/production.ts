@@ -12,6 +12,7 @@ validateWorkerEnv();
 import { app } from './app';
 import { emailWorker } from './workers/emailWorker';
 import { indexWorker } from './workers/indexWorker';
+import { sessionRedisClient } from './redis/sessionRedisClient';
 
 const PORT = process.env.PORT || 4000;
 
@@ -32,6 +33,10 @@ const shutdown = async (signal: string) => {
       await emailWorker.close();
       await indexWorker.close();
       logger.info('Workers closed successfully');
+      
+      logger.info('Closing session Redis client...');
+      await sessionRedisClient.disconnect();
+      
       process.exit(0);
     } catch (err) {
       logger.error({ err }, 'Error occurred during graceful shutdown');
