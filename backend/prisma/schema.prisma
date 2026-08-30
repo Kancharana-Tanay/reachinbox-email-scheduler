@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String            @id @default(uuid())
+  googleId         String?           @unique
+  email            String            @unique
+  name             String?
+  avatarUrl        String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  senders          Sender[]
+  campaigns        Campaign[]
+  slackConnections SlackConnection[]
+}
+
+model Sender {
+  id                    String     @id @default(uuid())
+  userId                String
+  user                  User       @relation(fields: [userId], references: [id])
+  name                  String
+  email                 String
+  smtpHost              String
+  smtpPort              Int
+  smtpUsername          String
+  encryptedSmtpPassword String
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  campaigns             Campaign[]
+  emailJobs             EmailJob[]
+
+  @@index([userId])
+}
+
+model Campaign {
+  id          String     @id @default(uuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  senderId    String
+  sender      Sender     @relation(fields: [senderId], references: [id])
+  subject     String
+  body        String
+  startTime   DateTime
+  delayMs     Int
+  hourlyLimit Int
+  status      String     @default("SCHEDULED") // SCHEDULED, RUNNING, COMPLETED, FAILED, CANCELLED
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  emailJobs   EmailJob[]
+
+  @@index([userId])
+  @@index([senderId])
+}
+
+model EmailJob {
+  id                String    @id @default(uuid())
+  campaignId        String
+  campaign          Campaign  @relation(fields: [campaignId], references: [id])
+  senderId          String
+  sender            Sender    @relation(fields: [senderId], references: [id])
+  recipient         String
+  subject           String
+  body              String
+  sequenceNumber    Int
+  scheduledAt       DateTime
+  status            String    @default("SCHEDULED") // SCHEDULED, PROCESSING, SENT, FAILED, CANCELLED
+  bullJobId         String?
+  attempts          Int       @default(0)
+  sentAt            DateTime?
+  failedAt          DateTime?
+  providerMessageId String?
+  lastError         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([senderId])
+  @@index([campaignId])
+  @@index([recipient])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([sentAt])
+}
+
+model SlackConnection {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id])
+  workspaceId          String
+  workspaceName        String
+  accessTokenEncrypted String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
