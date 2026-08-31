@@ -13,21 +13,30 @@ import { app } from './app';
 import { emailWorker } from './workers/emailWorker';
 import { indexWorker } from './workers/indexWorker';
 import { sessionRedisClient } from './redis/sessionRedisClient';
+import { runSenderSeed } from './seed/senderSeed';
 
 const PORT = process.env.PORT || 4000;
 
-// 3. Start the Express API server
-const server = app.listen(PORT, () => {
-  logger.info(`Production Server running on port ${PORT}`);
-  logger.info(`BullMQ Workers started within the same process.`);
-});
+// 3. Run seeds and start the Express API server
+const start = async () => {
+  await runSenderSeed();
+
+  const server = app.listen(PORT, () => {
+    logger.info(`Production Server running on port ${PORT}`);
+    logger.info(`BullMQ Workers started within the same process.`);
+  });
+  
+  return server;
+};
+
+let server: any;
+start().then(s => server = s);
 
 // 4. Graceful Shutdown
 const shutdown = async (signal: string) => {
   logger.info(`${signal} signal received: closing HTTP server and BullMQ workers`);
 
-  server.close(async () => {
-    logger.info('HTTP server closed, waiting for active requests to finish...');
+  const cleanup = async () => {
     try {
       logger.info('Shutting down BullMQ workers...');
       await emailWorker.close();
@@ -42,7 +51,16 @@ const shutdown = async (signal: string) => {
       logger.error({ err }, 'Error occurred during graceful shutdown');
       process.exit(1);
     }
-  });
+  };
+
+  if (server) {
+    server.close(async () => {
+      logger.info('HTTP server closed, waiting for active requests to finish...');
+      await cleanup();
+    });
+  } else {
+    await cleanup();
+  }
 
   // Failsafe timeout to force exit if cleanup takes too long
   setTimeout(() => {

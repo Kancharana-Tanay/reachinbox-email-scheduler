@@ -1,10 +1,9 @@
 import nodemailer from 'nodemailer';
 import { Sender, EmailJob } from '@prisma/client';
+import { decrypt } from '../../utils/encryption';
 
 export const sendEmail = async (sender: Sender, emailJob: EmailJob): Promise<string> => {
-  // In a real application, you would decrypt the sender's password here.
-  // For the MVP with Ethereal, assuming it's stored plain or we decrypt it.
-  const decryptedPassword = sender.encryptedSmtpPassword; // TODO: decryption logic
+  const decryptedPassword = decrypt(sender.encryptedSmtpPassword);
 
   const transporter = nodemailer.createTransport({
     host: sender.smtpHost,
