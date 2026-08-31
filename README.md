@@ -2,9 +2,100 @@
 
 A production-quality MVP for a full-stack email scheduling platform inspired by ReachInbox.
 
-## 1. Project Overview
-This application allows users to authenticate via Google OAuth, connect their Slack workspace, manage email campaigns by uploading a CSV of leads, and schedule emails to be sent using Ethereal SMTP. It enforces per-sender minimum delays and hourly rate limits, rescheduling emails appropriately without dropping them.
+---
 
+> # ⚠️ IMPORTANT DEPLOYMENT NOTE — READ THIS FIRST
+>
+> **The application's architecture and its free-tier deployment topology are intentionally different.**
+>
+> The application is designed with **Express API and BullMQ workers as separate processes** so they can be independently scaled in a normal production environment.
+>
+> For the **free Render deployment used for this assignment**, Render does **not provide free Background Worker instances**, so the API and BullMQ workers are intentionally co-located inside the same Render Web Service container.
+>
+> **This does NOT change the scheduler architecture.**
+>
+> Scheduling is still performed entirely by **BullMQ delayed jobs backed by Redis**.  
+> **No cron job, `node-cron`, polling scheduler, or OS-level cron is used anywhere.**
+>
+> There is also a second Render Free-tier limitation: outbound SMTP traffic on the ports used by Ethereal is restricted. Therefore:
+>
+> - The complete email scheduling/sending implementation is verified locally with Ethereal.
+> - The deployed Render application can demonstrate the API, authentication, Redis/BullMQ, PostgreSQL, Elasticsearch, Slack, and dashboard functionality.
+> - A live SMTP send through Ethereal may fail on the Render Free service because of the hosting provider's network restriction, **not because of the application implementation**.
+>
+> In a normal production deployment, the intended topology is:
+>
+> ```text
+>                    Production Deployment
+>
+>        ┌─────────────────────┐
+>        │     Express API     │
+>        │    Web Service      │
+>        └──────────┬──────────┘
+>                   │
+>          ┌────────┴────────┐
+>          ▼                 ▼
+>    PostgreSQL         Redis / BullMQ
+>                            │
+>                            ▼
+>                   ┌─────────────────┐
+>                   │  Email Worker   │
+>                   │  Index Worker   │
+>                   └─────────────────┘
+> ```
+>
+> For this assignment's **free Render deployment**, the topology is:
+>
+> ```text
+>                 Render Free Web Service
+>              ┌───────────────────────────┐
+>              │                           │
+>              │      Express API          │
+>              │                           │
+>              │      Email Worker         │
+>              │                           │
+>              │      Index Worker         │
+>              │                           │
+>              └─────────────┬─────────────┘
+>                            │
+>                    Redis / PostgreSQL
+> ```
+>
+> This is a **hosting-tier trade-off only**. The application's queueing, persistence, concurrency, rate limiting, idempotency, and scheduling logic remain BullMQ/Redis based.
+>
+> **Why this matters:** the assignment evaluates the scheduler architecture, reliability, persistence, concurrency, rate limiting, and worker behavior. Those are implemented independently of the Render Free-tier deployment limitation.
+
+---
+
+## 1. Project Overview
+
+This application allows users to:
+
+- authenticate via Google OAuth
+- connect a Slack workspace
+- select configured email senders
+- create email campaigns by uploading a CSV of leads
+- schedule emails for a future time
+- configure per-sender delays and hourly limits
+- send emails through Ethereal SMTP
+- search scheduled/sent emails through Elasticsearch
+- monitor BullMQ queues through Bull Board
+- safely recover scheduled jobs after application restarts
+
+The core scheduling system is persistent and distributed:
+
+```text
+Frontend
+   ↓
+Express API
+   ↓
+PostgreSQL + Redis
+   ↓
+BullMQ delayed jobs
+   ↓
+Workers
+   ↓
+Ethereal / Elasticsearch / Slack
 ## 2. Tech Stack
 - **Backend**: Node.js, Express, TypeScript
 - **Database**: PostgreSQL (via Prisma ORM)
